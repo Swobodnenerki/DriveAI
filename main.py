@@ -3,13 +3,20 @@ import os
 import math
 import sys
 import neat
-
+import time
+from math import sqrt
+pygame.init()
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 900
 TRACK_NAME = "track.2.png"
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+FONT = pygame.font.SysFont('Consolas', 24)
 
 TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
+
+
+def calc_distance(p1, p2):
+    return sqrt((p1[0]-p2[0])**2+(p1[1]-p2[1])**2)
 
 
 def hardcoded_track_setup(item):
@@ -115,6 +122,91 @@ def remove(index):
     nets.pop(index)
 
 
+def play():
+    car = pygame.sprite.GroupSingle(Car())
+    started = False
+    car.sprite.vel_vector = pygame.math.Vector2(0, 0)
+    car.sprite.Velocity = 0
+    start_ticks = pygame.time.get_ticks()
+    timer_text = '00:00.0'
+    best_time = sys.maxsize
+    best_text = ''
+    while True:
+        SCREEN.blit(TRACK, (0, 0))
+        if started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 25.0:
+            if pygame.time.get_ticks()-start_ticks < best_time:
+                best_time = pygame.time.get_ticks()-start_ticks
+                best_minutes = int((pygame.time.get_ticks()-start_ticks)/60000)
+                best_seconds = int(
+                    (pygame.time.get_ticks()-start_ticks)/1000) % 60
+                best_millis = int(
+                    (pygame.time.get_ticks()-start_ticks)/100) % 10
+                best_text = str(best_minutes)+':' + \
+                    str(best_seconds)+'.'+str(best_millis)
+            start_ticks = pygame.time.get_ticks()
+            started = False
+        elif not started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 100.0:
+            started = True
+
+        minutes = int((pygame.time.get_ticks()-start_ticks)/60000)
+        seconds = int((pygame.time.get_ticks()-start_ticks)/1000) % 60
+        millis = int((pygame.time.get_ticks()-start_ticks)/100) % 10
+        timer_text = str(minutes)+':'+str(seconds)+'.'+str(millis)
+        SCREEN.blit(FONT.render(timer_text, True, (0, 0, 0)), (32, 48))
+        SCREEN.blit(FONT.render('Best time: ', True, (0, 0, 0)), (1150, 48))
+        if best_text != '':
+            SCREEN.blit(FONT.render(best_text,
+                                    True, (0, 0, 0)), (1300, 48))
+        if not car.sprite.alive:
+            car = pygame.sprite.GroupSingle(Car())
+            start_ticks = pygame.time.get_ticks()
+            car.sprite.Velocity = 0
+            car.sprite.vel_vector = pygame.math.Vector2(0, 0)
+            started = False
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_a]:
+            if car.sprite.Velocity != 0:
+                car.sprite.direction = -1
+        if keys[pygame.K_d]:
+            if car.sprite.Velocity != 0:
+                car.sprite.direction = 1
+        if keys[pygame.K_w]:
+            car.sprite.direction = 0
+            car.sprite.Velocity += 0.1
+            if car.sprite.Velocity == 0.0:
+                car.sprite.vel_vector = pygame.math.Vector2(0, 0)
+            elif car.sprite.Velocity > 0.0 and car.sprite.Velocity <= 0.125:
+                car.sprite.vel_vector = pygame.math.Vector2(
+                    car.sprite.Velocity, 0)
+                print(car.sprite.angle)
+                car.sprite.vel_vector.rotate_ip(-car.sprite.angle)
+            else:
+                car.sprite.vel_vector.scale_to_length(car.sprite.Velocity)
+        if keys[pygame.K_s]:
+            if car.sprite.Velocity > -0.3:
+                car.sprite.direction = 0
+                car.sprite.Velocity -= 0.1
+                if car.sprite.Velocity == 0.0:
+                    car.sprite.vel_vector = pygame.math.Vector2(0, 0)
+                elif car.sprite.Velocity < 0.0 and car.sprite.Velocity >= -0.125:
+                    car.sprite.vel_vector = pygame.math.Vector2(
+                        car.sprite.Velocity, 0)
+                    print(car.sprite.angle)
+                    car.sprite.vel_vector.rotate_ip(-car.sprite.angle)
+                else:
+                    car.sprite.vel_vector.scale_to_length(car.sprite.Velocity)
+        if keys[pygame.K_x]:
+            break
+        if not keys[pygame.K_a] and not keys[pygame.K_d]:
+            car.sprite.direction = 0
+
+        car.draw(SCREEN)
+        car.update()
+        pygame.display.update()
+        pygame.event.pump()
+        time.sleep(0.1)
+
+
 def eval_genomes(genomes, config):
     global cars, ge, nets
 
@@ -135,6 +227,11 @@ def eval_genomes(genomes, config):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    cars = []
+                    pygame.display.update()
+                    play()
 
         SCREEN.blit(TRACK, (0, 0))
 
