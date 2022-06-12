@@ -6,7 +6,10 @@ import neat
 
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 900
-TRACK_NAME = "track.2.png"
+ITERATION_NUMBER = 0
+ITERATIVE_MAPS = ["track4.png", "track3.png", "track.2.png"]
+TRACK_NAME = ITERATIVE_MAPS[0]
+TRACK_NUMBER = 0
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
@@ -116,12 +119,17 @@ def remove(index):
 
 
 def eval_genomes(genomes, config):
-    global cars, ge, nets
+    global cars, ge, nets, ITERATION_NUMBER, TRACK, TRACK_NAME
 
     cars = []
     ge = []
     nets = []
-
+    ITERATION_NUMBER += 1
+    if(ITERATION_NUMBER % 5 == 0):
+        if(ITERATION_NUMBER == 15):
+            ITERATION_NUMBER = 0
+        TRACK_NAME = ITERATIVE_MAPS[(int)(ITERATION_NUMBER / 5)]
+        TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
     for genome_id, genome in genomes:
         cars.append(pygame.sprite.GroupSingle(Car()))
         ge.append(genome)
