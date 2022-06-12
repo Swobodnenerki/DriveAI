@@ -47,6 +47,7 @@ class Car(pygame.sprite.Sprite):
         self.direction = 0
         self.alive = True
         self.radars = []
+        self.started = False
 
     def update(self):
         self.radars.clear()
@@ -222,6 +223,10 @@ def eval_genomes(genomes, config):
         genome.fitness = 0
 
     run = True
+    start_ticks = pygame.time.get_ticks()
+    timer_text = '00:00.0'
+    best_time = sys.maxsize
+    best_text = ''
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -232,9 +237,19 @@ def eval_genomes(genomes, config):
                     cars = []
                     pygame.display.update()
                     play()
+                    start_ticks = pygame.time.get_ticks()
+                    timer_text = '00:00.0'
+                    best_time = sys.maxsize
+                    best_text = ''
 
         SCREEN.blit(TRACK, (0, 0))
-
+        minutes = int((pygame.time.get_ticks()-start_ticks)/60000)
+        seconds = int((pygame.time.get_ticks()-start_ticks)/1000) % 60
+        millis = int((pygame.time.get_ticks()-start_ticks)/100) % 10
+        timer_text = str(minutes)+':'+str(seconds)+'.'+str(millis)
+        SCREEN.blit(FONT.render(timer_text, True, (0, 0, 0)), (32, 48))
+        SCREEN.blit(FONT.render('Best time: ',
+                    True, (0, 0, 0)), (1150, 48))
         if len(cars) == 0:
             break
 
@@ -256,6 +271,25 @@ def eval_genomes(genomes, config):
         for car in cars:
             car.draw(SCREEN)
             car.update()
+            if car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 25.0:
+                if pygame.time.get_ticks()-start_ticks < best_time:
+                    best_time = pygame.time.get_ticks()-start_ticks
+                    best_minutes = int(
+                        (pygame.time.get_ticks()-start_ticks)/60000)
+                    best_seconds = int(
+                        (pygame.time.get_ticks()-start_ticks)/1000) % 60
+                    best_millis = int(
+                        (pygame.time.get_ticks()-start_ticks)/100) % 10
+                    best_text = str(best_minutes)+':' + \
+                        str(best_seconds)+'.'+str(best_millis)
+                start_ticks = pygame.time.get_ticks()
+                car.sprite.started = False
+            elif not car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 100.0:
+                car.sprite.started = True
+
+            if best_text != '':
+                SCREEN.blit(FONT.render(best_text,
+                                        True, (0, 0, 0)), (1300, 48))
         pygame.display.update()
 
 
