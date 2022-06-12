@@ -4,20 +4,37 @@ import math
 import sys
 import neat
 
-SCREEN_WIDTH = 1244
-SCREEN_HEIGHT = 1016
+SCREEN_WIDTH = 1500
+SCREEN_HEIGHT = 900
+TRACK_NAME = "track.2.png"
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
+TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
+
+
+def hardcoded_track_setup(item):
+    # kilkanascie generacji
+    if(TRACK_NAME == "track4.png"):
+        item.Velocity = 1.0
+        item.Start = (650, 710)
+    # ze 20 generacji
+    if(TRACK_NAME == "track3.png"):
+        item.Velocity = 1.05
+        item.Start = (320, 710)
+    if(TRACK_NAME == "track.2.png"):
+        item.Velocity = 0.9
+        item.Start = (150, 700)
 
 
 class Car(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.original_image = pygame.image.load(os.path.join("Assets", "car.png"))
+        self.original_image = pygame.image.load(
+            os.path.join("Assets", "car.png"))
         self.image = self.original_image
-        self.rect = self.image.get_rect(center=(490, 820))
-        self.vel_vector = pygame.math.Vector2(0.8, 0)
+        hardcoded_track_setup(self)
+        self.rect = self.image.get_rect(center=self.Start)
+        self.vel_vector = pygame.math.Vector2(self.Velocity, 0)
         self.angle = 0
         self.rotation_vel = 5
         self.direction = 0
@@ -60,21 +77,24 @@ class Car(pygame.sprite.Sprite):
             self.angle += self.rotation_vel
             self.vel_vector.rotate_ip(-self.rotation_vel)
 
-        self.image = pygame.transform.rotozoom(self.original_image, self.angle, 0.1)
+        self.image = pygame.transform.rotozoom(
+            self.original_image, self.angle, 0.1)
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def radar(self, radar_angle):
         length = 0
         x = int(self.rect.center[0])
         y = int(self.rect.center[1])
-
         while not SCREEN.get_at((x, y)) == pygame.Color(2, 105, 31, 255) and length < 200:
             length += 1
-            x = int(self.rect.center[0] + math.cos(math.radians(self.angle + radar_angle)) * length)
-            y = int(self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
+            x = int(
+                self.rect.center[0] + math.cos(math.radians(self.angle + radar_angle)) * length)
+            y = int(
+                self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
 
         # Draw Radar
-        pygame.draw.line(SCREEN, (255, 255, 255, 255), self.rect.center, (x, y), 1)
+        pygame.draw.line(SCREEN, (255, 255, 255, 255),
+                         self.rect.center, (x, y), 1)
         pygame.draw.circle(SCREEN, (0, 255, 0, 0), (x, y), 3)
 
         dist = int(math.sqrt(math.pow(self.rect.center[0] - x, 2)
