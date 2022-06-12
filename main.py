@@ -8,7 +8,7 @@ from math import sqrt
 pygame.init()
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 900
-TRACK_NAME = "track.2.png"
+TRACK_NAME = "track3.png"
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 FONT = pygame.font.SysFont('Consolas', 24)
 
@@ -62,15 +62,24 @@ class Car(pygame.sprite.Sprite):
         self.rect.center += self.vel_vector * 6
 
     def collision(self):
-        length = 40
+        length = 36
         collision_point_right = [int(self.rect.center[0] + math.cos(math.radians(self.angle + 18)) * length),
                                  int(self.rect.center[1] - math.sin(math.radians(self.angle + 18)) * length)]
         collision_point_left = [int(self.rect.center[0] + math.cos(math.radians(self.angle - 18)) * length),
                                 int(self.rect.center[1] - math.sin(math.radians(self.angle - 18)) * length)]
+        collision_point_back_left = [int(self.rect.center[0] - math.cos(math.radians(self.angle + 18)) * length),
+                                     int(self.rect.center[1] + math.sin(math.radians(self.angle + 18)) * length)]
+        collision_point_back_right = [int(self.rect.center[0] - math.cos(math.radians(self.angle - 18)) * length),
+                                      int(self.rect.center[1] + math.sin(math.radians(self.angle - 18)) * length)]
 
         # Die on Collision
-        if SCREEN.get_at(collision_point_right) == pygame.Color(2, 105, 31, 255) \
-                or SCREEN.get_at(collision_point_left) == pygame.Color(2, 105, 31, 255):
+        try:
+            if SCREEN.get_at(collision_point_right) == pygame.Color(2, 105, 31, 255) \
+                    or SCREEN.get_at(collision_point_left) == pygame.Color(2, 105, 31, 255) \
+                or SCREEN.get_at(collision_point_back_left) == pygame.Color(2, 105, 31, 255) \
+                    or SCREEN.get_at(collision_point_back_right) == pygame.Color(2, 105, 31, 255):
+                self.alive = False
+        except:
             self.alive = False
 
         # Draw Collision Points
@@ -93,13 +102,15 @@ class Car(pygame.sprite.Sprite):
         length = 0
         x = int(self.rect.center[0])
         y = int(self.rect.center[1])
-        while not SCREEN.get_at((x, y)) == pygame.Color(2, 105, 31, 255) and length < 200:
-            length += 1
-            x = int(
-                self.rect.center[0] + math.cos(math.radians(self.angle + radar_angle)) * length)
-            y = int(
-                self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
-
+        try:
+            while not SCREEN.get_at((x, y)) == pygame.Color(2, 105, 31, 255) and length < 200:
+                length += 1
+                x = int(
+                    self.rect.center[0] + math.cos(math.radians(self.angle + radar_angle)) * length)
+                y = int(
+                    self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
+        except:
+            self.alive = False
         # Draw Radar
         pygame.draw.line(SCREEN, (255, 255, 255, 255),
                          self.rect.center, (x, y), 1)
@@ -179,7 +190,6 @@ def play():
             elif car.sprite.Velocity > 0.0 and car.sprite.Velocity <= 0.125:
                 car.sprite.vel_vector = pygame.math.Vector2(
                     car.sprite.Velocity, 0)
-                print(car.sprite.angle)
                 car.sprite.vel_vector.rotate_ip(-car.sprite.angle)
             else:
                 car.sprite.vel_vector.scale_to_length(car.sprite.Velocity)
@@ -192,7 +202,6 @@ def play():
                 elif car.sprite.Velocity < 0.0 and car.sprite.Velocity >= -0.125:
                     car.sprite.vel_vector = pygame.math.Vector2(
                         car.sprite.Velocity, 0)
-                    print(car.sprite.angle)
                     car.sprite.vel_vector.rotate_ip(-car.sprite.angle)
                 else:
                     car.sprite.vel_vector.scale_to_length(car.sprite.Velocity)
@@ -205,7 +214,7 @@ def play():
         car.update()
         pygame.display.update()
         pygame.event.pump()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 
 def eval_genomes(genomes, config):
