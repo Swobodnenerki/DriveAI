@@ -1,17 +1,25 @@
+from random import random
 import pygame
 import os
 import math
 import sys
 import neat
 import time
+import re
+import random
 from math import sqrt
 pygame.init()
+
+
+def random_trackname():
+    number = random.randint(2, 5)
+    return 'track' + str(number) + '.png'
+
+
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 900
-ITERATION_NUMBER = 0
-ITERATIVE_MAPS = ["track4.png", "track3.png", "track.2.png"]
-TRACK_NAME = ITERATIVE_MAPS[0]
-TRACK_NUMBER = 0
+TRACK_NAME = random_trackname()
+CENTER = (0, 0)
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 FONT = pygame.font.SysFont('Consolas', 24)
 
@@ -31,20 +39,37 @@ def hardcoded_track_setup(item):
     if(TRACK_NAME == "track3.png"):
         item.Velocity = 1.05
         item.Start = (320, 710)
-    if(TRACK_NAME == "track.2.png"):
+    if(TRACK_NAME == "track2.png"):
         item.Velocity = 0.9
         item.Start = (150, 700)
+    if(TRACK_NAME == "track5.png"):
+        item.Velocity = 1.1
+        item.Start = (600, 710)
 
 
 class Car(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
+        global TRACK_NAME, TRACK, CENTER
         self.original_image = pygame.image.load(
             os.path.join("Assets", "car.png"))
         self.image = self.original_image
         hardcoded_track_setup(self)
-        self.rect = self.image.get_rect(center=self.Start)
-        self.vel_vector = pygame.math.Vector2(self.Velocity, 0)
+        if CENTER == (0, 0):
+            self.rect = self.image.get_rect(center=self.Start)
+        else:
+            self.rect = self.image.get_rect(center=CENTER)
+            self.Velocity = 1.0
+            self.Start = CENTER
+        try:
+            self.vel_vector = pygame.math.Vector2(self.Velocity, 0)
+        except:
+            TRACK_NAME = random_trackname()
+            TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
+            hardcoded_track_setup(self)
+            self.rect = self.image.get_rect(center=self.Start)
+            self.vel_vector = pygame.math.Vector2(self.Velocity, 0)
+            CENTER = (0, 0)
         self.angle = 0
         self.rotation_vel = 5
         self.direction = 0
@@ -148,7 +173,7 @@ def play():
     best_text = ''
     while True:
         SCREEN.blit(TRACK, (0, 0))
-        if started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 25.0:
+        if started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 40.0:
             if pygame.time.get_ticks()-start_ticks < best_time:
                 best_time = pygame.time.get_ticks()-start_ticks
                 best_minutes = int((pygame.time.get_ticks()-start_ticks)/60000)
@@ -160,7 +185,7 @@ def play():
                     str(best_seconds)+'.'+str(best_millis)
             start_ticks = pygame.time.get_ticks()
             started = False
-        elif not started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 100.0:
+        elif not started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 150.0:
             started = True
 
         minutes = int((pygame.time.get_ticks()-start_ticks)/60000)
@@ -226,12 +251,6 @@ def eval_genomes(genomes, config):
     cars = []
     ge = []
     nets = []
-    ITERATION_NUMBER += 1
-    if(ITERATION_NUMBER % 5 == 0):
-        if(ITERATION_NUMBER == 15):
-            ITERATION_NUMBER = 0
-        TRACK_NAME = ITERATIVE_MAPS[(int)(ITERATION_NUMBER / 5)]
-        TRACK = pygame.image.load(os.path.join("Assets", TRACK_NAME))
     for genome_id, genome in genomes:
         cars.append(pygame.sprite.GroupSingle(Car()))
         ge.append(genome)
@@ -288,7 +307,7 @@ def eval_genomes(genomes, config):
         for car in cars:
             car.draw(SCREEN)
             car.update()
-            if car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 25.0:
+            if car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) < 40.0:
                 if pygame.time.get_ticks()-start_ticks < best_time:
                     best_time = pygame.time.get_ticks()-start_ticks
                     best_minutes = int(
@@ -301,7 +320,7 @@ def eval_genomes(genomes, config):
                         str(best_seconds)+'.'+str(best_millis)
                 start_ticks = pygame.time.get_ticks()
                 car.sprite.started = False
-            elif not car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 100.0:
+            elif not car.sprite.started and calc_distance(car.sprite.rect.center, car.sprite.Start) > 150.0:
                 car.sprite.started = True
 
             if best_text != '':
@@ -312,7 +331,7 @@ def eval_genomes(genomes, config):
 
 # Setup NEAT Neural Network
 def run(config_path):
-    global pop
+    global pop, TRACK, TRACK_NAME, CENTER
     config = neat.config.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
@@ -320,6 +339,17 @@ def run(config_path):
         neat.DefaultStagnation,
         config_path
     )
+    local_dir = os.path.dirname(__file__)
+    if os.path.isfile(os.path.join(local_dir, 'default_track.png')) and os.path.isfile(os.path.join(local_dir, 'default_track_settings.txt')):
+        pattern = re.compile('[0-9]+,[0-9]+')
+        f = open(os.path.join(local_dir, 'default_track_settings.txt'), "r")
+        startpoint = f.read()
+        if pattern.match(startpoint):
+            TRACK = pygame.image.load(
+                os.path.join(local_dir, 'default_track.png'))
+            TRACK_NAME = 'default_track.png'
+            CENTER = (int(startpoint.split(',')[0]), int(
+                startpoint.split(',')[1]))
 
     pop = neat.Population(config)
 
@@ -332,5 +362,6 @@ def run(config_path):
 
 if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
+
     config_path = os.path.join(local_dir, 'config.txt')
     run(config_path)
